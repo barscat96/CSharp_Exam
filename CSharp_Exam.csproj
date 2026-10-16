@@ -7,4 +7,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="Casino\Games\" />
+    <Folder Include="Casino\Finance\" />
+    <Folder Include="Casino\Admin\" />
+    <Folder Include="Casino\User\" />
+  </ItemGroup>
+
 </Project>
