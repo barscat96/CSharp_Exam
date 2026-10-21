@@ -8,19 +8,19 @@
     "net10.0": []
   },
   "packageFolders": {
-    "C:\\Users\\DE\\.nuget\\packages\\": {}
+    "C:\\Users\\danil\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\IT\\C#_.NET\\CSharp_Exam\\CSharp_Exam.csproj",
+      "projectUniqueName": "C:\\Users\\danil\\source\\repos\\CSharp_Exam\\CSharp_Exam.csproj",
       "projectName": "CSharp_Exam",
-      "projectPath": "D:\\IT\\C#_.NET\\CSharp_Exam\\CSharp_Exam.csproj",
-      "packagesPath": "C:\\Users\\DE\\.nuget\\packages\\",
-      "outputPath": "D:\\IT\\C#_.NET\\CSharp_Exam\\obj\\",
+      "projectPath": "C:\\Users\\danil\\source\\repos\\CSharp_Exam\\CSharp_Exam.csproj",
+      "packagesPath": "C:\\Users\\danil\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\danil\\source\\repos\\CSharp_Exam\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\DE\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\danil\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
