@@ -5,7 +5,7 @@
      *
      * ТИЖДЕНЬ 1 — ОСНОВА МОДУЛЯ
      *
-     * [ ] Спроєктувати класи:
+     * [X] Спроєктувати класи:
      *     - BetRecord
      *     - GameStatistics
      *     - UserStatistics
