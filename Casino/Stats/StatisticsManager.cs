@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace CSharp_Exam.Casino.Stats
@@ -8,6 +9,10 @@ namespace CSharp_Exam.Casino.Stats
     {
         private readonly List<BetRecord> _betRecords = new();
         public int TotalBets => _betRecords.Count;
+
+        public decimal TotalBetAmount => _betRecords.Sum(record => record.BetAmount);
+        public decimal TotalPayouts => _betRecords.Sum(record => record.Payout);
+        public decimal NetResult => TotalBetAmount - TotalPayouts;
 
         public void AddBet(BetRecord record)
         {
