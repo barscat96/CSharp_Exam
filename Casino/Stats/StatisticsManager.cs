@@ -41,6 +41,11 @@ namespace CSharp_Exam.Casino.Stats
                 record.Date = DateTime.Now;
             }
 
+            if (!Enum.IsDefined(typeof(BetResult), record.Result) || record.Result == BetResult.Unknown)
+            {
+                throw new ArgumentException("Invalid bet result.");
+            }
+
             _betRecords.Add(record);
         }
 

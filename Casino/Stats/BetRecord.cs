@@ -10,7 +10,7 @@ namespace CSharp_Exam.Casino.Stats
         public string GameName { get; set; }
         public decimal BetAmount { get; set; }
         public decimal Payout { get; set; }
-        public string Result { get; set; }
+        public BetResult Result { get; set; }
         public DateTime Date { get; set; } // Дата та час ставки
     }
 }
