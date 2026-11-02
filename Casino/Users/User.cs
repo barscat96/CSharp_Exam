@@ -1,6 +1,6 @@
 ﻿namespace CSharp_Exam.Casino.Users;
 
-public class User
+class User
 {
-    
+    public string Name { get; }
 }

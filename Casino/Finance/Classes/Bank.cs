@@ -8,12 +8,25 @@ namespace CSharp_Exam.Casino.Finance.Classes;
 
 class Bank
 {
-    public static readonly ushort MaxPaymentMethods = 3;
+    public static readonly ushort MaxCards = 4;
+    public static readonly ushort MaxCryptoWallets = 4;
+
+    private Dictionary<uint, BankAccount> users = new();
+
+    private bool HandlePaymentRequest(Func<bool> action)
+    {
+        try
+        {
+            return action();
+        }
+        catch (PaymentMethodNotFound e)
+        {
+            Console.WriteLine(e);
+            return false;
+        }
+    }
 
     // TODO
-    private Dictionary<User, FixedArray<IConfigBase>> users = new(MaxPaymentMethods);
-
-    
     public void Register()
     {
 
@@ -26,62 +39,35 @@ class Bank
 
     // ---------------------
 
-
-    public static uint RequestFundsWithdrawal(User user, uint amount,ValidationRegistry.PaymentMethods payment_method)
+    public BankAccount? GetAccountFromUser(User user)
     {
-        return 0;
+        foreach (BankAccount account in users.Values)
+            if (account.user == user) return account;
+
+        return null;
     }
 
-    public static string GetCardOrCrypto(string input, ValidationRegistry.PaymentMethods payment_method)
+    public bool RequestFundsWithdrawal(
+    User user,
+    decimal amount,
+    string payment_id,
+    ValidationRegistry.PaymentMethods payment_method)
     {
-        if (string.IsNullOrWhiteSpace(input))
-            throw new ArgumentNullException(nameof(input));
+        BankAccount account = GetAccountFromUser(user)
+            ?? throw new UserNotFound(user.Name);
 
-        IEnumerable<KeyValuePair<string, IConfigBase>> indexes =
-            payment_method switch
-            {
-                ValidationRegistry.PaymentMethods.Card =>
-                    ValidationRegistry.CardIndexes.Select(x =>
-                        new KeyValuePair<string, IConfigBase>(x.Key, x.Value)),
-
-                ValidationRegistry.PaymentMethods.Crypto =>
-                    ValidationRegistry.CryptoIndexes.Select(x =>
-                        new KeyValuePair<string, IConfigBase>(x.Key, x.Value)),
-
-                _ => Enumerable.Empty<KeyValuePair<string, IConfigBase>>()
-            };
-
-        var match = indexes
-            .Where(x =>
-                input.StartsWith(x.Key, StringComparison.OrdinalIgnoreCase) &&
-                input.Length >= x.Value.MinLength &&
-                input.Length <= x.Value.MaxLength)
-            .OrderByDescending(x => x.Key.Length)
-            .FirstOrDefault();
-
-        return match.Value?.Name ?? throw new PaymentMethodNotFound(input);
+        return HandlePaymentRequest(() => account.Withdraw(amount, payment_id, payment_method));
     }
 
-    public static bool ValidateCardOrCrypto(string input, ValidationRegistry.PaymentMethods payment_method)
+    public bool RequestFundsDeposit(
+        User user,
+        decimal amount,
+        string payment_id,
+        ValidationRegistry.PaymentMethods payment_method)
     {
-        if (string.IsNullOrWhiteSpace(input))
-            return false;
+        BankAccount account = GetAccountFromUser(user)
+            ?? throw new UserNotFound(user.Name);
 
-        input = string.Concat(input.Where(c => !char.IsWhiteSpace(c)));
-
-        Dictionary<string, IConfigBase> indexes;
-
-        if (payment_method == ValidationRegistry.PaymentMethods.Card)
-            indexes = ValidationRegistry.CardIndexes;
-        else if (payment_method == ValidationRegistry.PaymentMethods.Crypto)
-            indexes = ValidationRegistry.CryptoIndexes;
-        else
-            return false;
-
-        return indexes.Any(x =>
-            input.StartsWith(x.Key, StringComparison.Ordinal) &&
-            input.Length >= x.Value.MinLength &&
-            input.Length <= x.Value.MaxLength
-        );
+        return HandlePaymentRequest(() => account.Deposit(amount, payment_id, payment_method));
     }
 }

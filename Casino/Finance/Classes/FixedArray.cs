@@ -7,6 +7,8 @@ public class FixedArray<T>(uint size) : IEnumerable<T>
 {
     public T[] array { get; } = new T[size];
 
+    public T this[int index] => array[index];
+
     private uint index = 0;
 
     public void Add(T item)

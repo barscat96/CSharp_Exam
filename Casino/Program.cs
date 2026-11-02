@@ -9,8 +9,8 @@ string str = "4149498274028402";
 
 try
 { 
-    if (Bank.ValidateCardOrCrypto(str, ValidationRegistry.PaymentMethods.Card))
-        Console.WriteLine(Bank.GetCardOrCrypto(str, ValidationRegistry.PaymentMethods.Card)); 
+    if (PaymentValidator.ValidateCardOrCrypto(str, ValidationRegistry.PaymentMethods.Card))
+        Console.WriteLine(PaymentValidator.GetCardOrCrypto(str, ValidationRegistry.PaymentMethods.Card)); 
     else
         Console.WriteLine("Invalid payment method!");
 }
