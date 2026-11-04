@@ -75,6 +75,33 @@ namespace CSharp_Exam.Casino.Stats
             };
         }
 
+        public UserStatistics GetUserStatistics(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new ArgumentException("User ID can't be empty.");
+            }
+
+            var userBets = _betRecords.Where(record => record.UserId.Equals(userId.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+
+            var favouriteGame = userBets.GroupBy(record => record.GameName).OrderByDescending(group => group.Count()).FirstOrDefault();
+
+            return new UserStatistics
+            {
+                UserId = userId.Trim(),
+                TotalBets = userBets.Count,
+                TotalBetsAmount = userBets.Sum(record => record.BetAmount),
+                TotalPayouts = userBets.Sum(record => record.Payout),
+                TotalWins = userBets.Count(record => record.Result == BetResult.Win),
+                TotalLosses = userBets.Count(record => record.Result == BetResult.Loss),
+                TotalDraws = userBets.Count(record => record.Result == BetResult.Draw),
+                TotalGamesPlayed = userBets.Count,
+                FavouriteGame = favouriteGame?.Key ?? string.Empty,
+                BiggestBet = userBets.Count > 0 ? userBets.Max(record => record.BetAmount) : 0,
+                BiggestPayout = userBets.Count > 0 ? userBets.Max(record => record.Payout) : 0
+            };
+        }
+
         public List<BetRecord> GetAllBets() { return new List<BetRecord>(_betRecords); }
     }
 
