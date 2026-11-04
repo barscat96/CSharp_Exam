@@ -54,6 +54,27 @@ namespace CSharp_Exam.Casino.Stats
             _betRecords.Add(record);
         }
 
+        public GameStatistics GetGameStatistics(string gameName)
+        {
+            if (string.IsNullOrWhiteSpace(gameName))
+            {
+                throw new ArgumentException("Game name can't be empty.");
+            }
+
+            var gameBets = _betRecords.Where(record => record.GameName.Equals(gameName.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+
+            return new GameStatistics
+            {
+                GameName = gameName.Trim(),
+                TotalBets = gameBets.Count,
+                TotalBetAmount = gameBets.Sum(record => record.BetAmount),
+                TotalPayouts = gameBets.Sum(record => record.Payout),
+                TotalWins = gameBets.Count(record => record.Result == BetResult.Win),
+                TotalLosses = gameBets.Count(record => record.Result == BetResult.Loss),
+                TotalDraws = gameBets.Count(record => record.Result == BetResult.Draw)
+            };
+        }
+
         public List<BetRecord> GetAllBets() { return new List<BetRecord>(_betRecords); }
     }
 
