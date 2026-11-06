@@ -102,6 +102,46 @@ namespace CSharp_Exam.Casino.Stats
             };
         }
 
+        public List<BetRecord> GetBetsByDateRange(DateTime startDate, DateTime endDate)
+        {
+            if (startDate > endDate)
+            {
+                throw new ArgumentException("Start date must be earlier than end date.");
+            }
+
+            return _betRecords
+                .Where(record => record.Date >= startDate && record.Date <= endDate)
+                .ToList();
+        }
+
+        public List<BetRecord> GetBetsByGame(string gameName)
+        {
+            if (string.IsNullOrWhiteSpace(gameName))
+            {
+                throw new ArgumentException("Game name cannot be empty.");
+            }
+
+            return _betRecords
+                .Where(record => record.GameName.Equals(
+                    gameName.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        public List<BetRecord> GetBetsByUser(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new ArgumentException("User ID cannot be empty.");
+            }
+
+            return _betRecords
+                .Where(record => record.UserId.Equals(
+                    userId.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
         public List<BetRecord> GetAllBets() { return new List<BetRecord>(_betRecords); }
     }
 
