@@ -1,16 +1,27 @@
 ﻿using CSharp_Exam.Casino.Finance.Configs;
-using CSharp_Exam.Casino.Users;
+using CSharp_Exam.Casino.Models;
 using CSharp_Exam.Casino.Finance.Exceptions;
 using static CSharp_Exam.Casino.Finance.Configs.ValidationRegistry;
+using System.Text.Json.Serialization;
 
 namespace CSharp_Exam.Casino.Finance.Classes;
 
-class BankAccount(User? user_ = null)
+partial class BankAccount(uint id, User? user_ = null)
 {
-    public User? user { get; } = user_;
+    [JsonIgnore]
+    public readonly uint Id = id;
+    [JsonInclude]
+    public User? user { get; private set; } = user_;
+    [JsonInclude]
+    public string PasswordHash { get; private set; } = string.Empty;
+    [JsonInclude]
+    public Dictionary<DateTime, string> TransactionsHistory { get; private set; } = new();
+    [JsonInclude]
+    public DateTime AccountCreatedAt { get; private set; } = DateTime.Now;
 
-    public Dictionary<ValidationRegistry.PaymentMethods, FixedArray<PaymentMethod>> PaymentMethods
-    { get; } = new()
+    [JsonInclude]
+    public Dictionary<PaymentMethods, FixedArray<PaymentMethod>> PaymentMethods
+    { get; private set; } = new()
     {
         [ValidationRegistry.PaymentMethods.Card] =
                 new FixedArray<PaymentMethod>(Bank.MaxCards),
@@ -19,14 +30,14 @@ class BankAccount(User? user_ = null)
                 new FixedArray<PaymentMethod>(Bank.MaxCryptoWallets)
     };
 
-    public bool HasPaymentMethod(string payment_id, ValidationRegistry.PaymentMethods payment_method)
+    public bool HasPaymentMethod(string payment_id, PaymentMethods payment_method)
         => PaymentMethods.TryGetValue(payment_method, out var methods)
        && methods.Any(x => string.Equals(x.Id, payment_id, StringComparison.Ordinal));
 
     public bool Withdraw(
         decimal amount, 
         string payment_id, 
-        ValidationRegistry.PaymentMethods payment_method)
+        PaymentMethods payment_method)
     {
         if (amount <= 0) return false;
 
@@ -37,13 +48,15 @@ class BankAccount(User? user_ = null)
 
         payment.Balance -= amount;
 
+        TransactionsHistory[DateTime.Now] = $"Withdrawal of {amount} from {payment_id} ({payment_method})";
+
         return true;
     }
 
     public bool Deposit(
         decimal amount,
         string payment_id,
-        ValidationRegistry.PaymentMethods payment_method)
+        PaymentMethods payment_method)
     {
         if (amount <= 0) return false;
 
@@ -53,6 +66,8 @@ class BankAccount(User? user_ = null)
         if (payment == default) throw new PaymentMethodNotFound(payment_id);
 
         payment.Balance += amount;
+
+        TransactionsHistory[DateTime.Now] = $"Deposit of {amount} to {payment_id} ({payment_method})";
 
         return true;
     }

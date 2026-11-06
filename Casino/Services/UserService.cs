@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
-using CSharp_Exam.Models;
+using CSharp_Exam.Casino.Models;
 
 namespace CSharp_Exam.Services
 {

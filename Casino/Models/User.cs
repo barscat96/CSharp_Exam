@@ -1,4 +1,4 @@
-namespace CSharp_Exam.Models
+namespace CSharp_Exam.Casino.Models
 {
     public class User
     {
@@ -9,5 +9,18 @@ namespace CSharp_Exam.Models
         public decimal Balance { get; set; }
         public DateTime RegisteredAt { get; set; }
         public List<string> ActivityHistory { get; set; } = new List<string>();
+
+        public User() { }
+
+        public User(User other)
+        {
+            Id = other.Id;
+            Username = other.Username;
+            PasswordHash = other.PasswordHash;
+            PhoneNumber = other.PhoneNumber;
+            Balance = other.Balance;
+            RegisteredAt = other.RegisteredAt;
+            ActivityHistory = new List<string>(other.ActivityHistory);
+        }
     }
 }
