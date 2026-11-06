@@ -4,6 +4,8 @@ using System.Linq;
 
 namespace CSharp_Exam.Casino.Games
 {
+public enum UserRole { User, Admin }
+
     // 4 покерні масті
     public enum Suit { Clubs, Diamonds, Hearts, Spades }
 
@@ -99,6 +101,9 @@ namespace CSharp_Exam.Casino.Games
         public string Name { get; }
         public int Balance { get; set; }
         public int CurrentBet { get; set; }
+        public int Id { get; set; } = new Random().Next(100, 999);
+        public UserRole Role { get; set; } = UserRole.User;
+        public bool IsBanned { get; set; } = false;
         public bool IsFolded { get; set; } // якщо тру - гравець пасанув і вилетів з роздачі
         public List<Card> Hand { get; } = new List<Card>();
 
