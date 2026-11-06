@@ -142,6 +142,34 @@ namespace CSharp_Exam.Casino.Stats
                 .ToList();
         }
 
+        public List<BetRecord> GetBetsSortedByDate()
+        {
+            return _betRecords
+                .OrderByDescending(record => record.Date)
+                .ToList();
+        }
+
+        public List<BetRecord> GetBetsSortedByAmount()
+        {
+            return _betRecords
+                .OrderByDescending(record => record.BetAmount)
+                .ToList();
+        }
+
+        public BetRecord? GetBiggestBet()
+        {
+            return _betRecords
+                .OrderByDescending(record => record.BetAmount)
+                .FirstOrDefault();
+        }
+
+        public BetRecord? GetBiggestPayout()
+        {
+            return _betRecords
+                .OrderByDescending(record => record.Payout)
+                .FirstOrDefault();
+        }
+
         public List<BetRecord> GetAllBets() { return new List<BetRecord>(_betRecords); }
     }
 
