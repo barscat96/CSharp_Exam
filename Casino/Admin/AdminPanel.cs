@@ -1,9 +1,10 @@
-﻿using System;
+﻿using CSharp_Exam.Casino.Games;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
-namespace CSharp_Exam.Casino.Games
+namespace CSharp_Exam.Casino.Admin
 {
     public class AdminPanel
     {

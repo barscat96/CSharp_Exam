@@ -1,18 +1,21 @@
 ﻿using CSharp_Exam.Casino.Finance.Exceptions;
-using static CSharp_Exam.Casino.Finance.Configs.ValidationRegistry;
-
 using CSharp_Exam.Casino.Models;
+using CSharp_Exam.Casino.Services.Logging;
+using static CSharp_Exam.Casino.Finance.Configs.ValidationRegistry;
 
 namespace CSharp_Exam.Casino.Finance.Classes;
 
-partial class Bank(string name)
+partial class Bank
 {
-    public string Name { get; } = name;
+    public string Name { get; }
 
     public static readonly ushort MaxCards = 4;
     public static readonly ushort MaxCryptoWallets = 4;
 
     private Dictionary<uint, BankAccount> users = new();
+
+    private string LogFilePath => $"Bank_{Name}_Logs.txt";
+    private LoggingService logger;
 
     private bool HandlePaymentRequest(Func<bool> action)
     {
@@ -32,6 +35,12 @@ partial class Bank(string name)
         return Console.ReadLine() ?? string.Empty;
     }
 
+    public Bank(string name)
+    {
+        Name = name;
+        logger = new LoggingService(new FileLogProvider(LogFilePath));
+    }
+
     // TODO
     public void Register()
     {
@@ -41,6 +50,8 @@ partial class Bank(string name)
         // Validate password and username
         BankAccount account = new((uint)users.Count + 1);
         users.Add(account.Id, account);
+
+        logger.Log(LogLevel.Info, "Registered New Account");
     }
 
     public BankAccount? Login()
@@ -49,6 +60,8 @@ partial class Bank(string name)
         // Validate username
         string password = ConsoleInput("Enter your password: ");
         // Validate password
+
+        logger.Log(LogLevel.Info, "Loged Into An Account");
 
         return new(1);
     }
