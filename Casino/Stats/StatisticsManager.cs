@@ -130,6 +130,20 @@ namespace CSharp_Exam.Casino.Stats
             return statistics;
         }
 
+        public List<GameStatistics> GetGamesByPopularity()
+        {
+            _logger.Log(LogLevel.Debug, "Getting games ranked by popularity.");
+
+            var ranking = GetAllGameStatistics()
+                .OrderByDescending(game => game.TotalBets)
+                .ThenBy(game => game.GameName)
+                .ToList();
+
+            _logger.Log(LogLevel.Debug, $"Popularity ranking created for {ranking.Count} games.");
+
+            return ranking;
+        }
+
         public UserStatistics GetUserStatistics(string userId)
         {
             if (string.IsNullOrWhiteSpace(userId))
