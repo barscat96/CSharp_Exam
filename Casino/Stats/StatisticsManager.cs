@@ -107,6 +107,52 @@ namespace CSharp_Exam.Casino.Stats
             return statistics;
         }
 
+        public PeriodStatisticsReport GetPeriodReport(DateTime startDate, DateTime endDate)
+        {
+            if (startDate > endDate)
+            {
+                _logger.Log(LogLevel.Warning, "Cannot create report: start date is later than end date.");
+                throw new ArgumentException("Start date must be earlier than or equal to end date.");
+            }
+
+            _logger.Log(LogLevel.Debug, $"Creating statistics report for period: {startDate} - {endDate}");
+
+            var periodBets = _betRecords
+                .Where(record => record.Date >= startDate && record.Date <= endDate)
+                .ToList();
+
+            var report = new PeriodStatisticsReport
+            {
+                StartDate = startDate,
+                EndDate = endDate,
+                TotalBets = periodBets.Count,
+                TotalBetAmount = periodBets.Sum(record => record.BetAmount),
+                TotalPayouts = periodBets.Sum(record => record.Payout),
+                TotalWins = periodBets.Count(record => record.Result == BetResult.Win),
+                TotalLosses = periodBets.Count(record => record.Result == BetResult.Loss),
+                TotalDraws = periodBets.Count(record => record.Result == BetResult.Draw),
+                GameStatistics = periodBets
+                                    .GroupBy(record => record.GameName,
+                                            StringComparer.OrdinalIgnoreCase)
+                                    .Select(group => new GameStatistics
+                                    {
+                                        GameName = group.Key,
+                                        TotalBets = group.Count(),
+                                        TotalBetAmount = group.Sum(record => record.BetAmount),
+                                        TotalPayouts = group.Sum(record => record.Payout),
+                                        TotalWins = group.Count(record => record.Result == BetResult.Win),
+                                        TotalLosses = group.Count(record => record.Result == BetResult.Loss),
+                                        TotalDraws = group.Count(record => record.Result == BetResult.Draw)
+                                    })
+                                    .OrderBy(game => game.GameName)
+                                    .ToList()
+            };
+
+            _logger.Log(LogLevel.Debug, $"Statistics report created. Bets: {report.TotalBets}, games: {report.GameStatistics.Count}.");
+
+            return report;
+        }
+
         public List<GameStatistics> GetAllGameStatistics()
         {
             _logger.Log(LogLevel.Debug, "Getting statistics for all games.");
