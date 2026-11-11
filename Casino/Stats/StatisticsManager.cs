@@ -107,6 +107,29 @@ namespace CSharp_Exam.Casino.Stats
             return statistics;
         }
 
+        public List<GameStatistics> GetAllGameStatistics()
+        {
+            _logger.Log(LogLevel.Debug, "Getting statistics for all games.");
+
+            var statistics = _betRecords
+                .GroupBy(record => record.GameName,
+                    StringComparer.OrdinalIgnoreCase)
+                .Select(group => new GameStatistics
+                {
+                    GameName = group.Key,
+                    TotalBets = group.Count(),
+                    TotalBetAmount = group.Sum(record => record.BetAmount),
+                    TotalPayouts = group.Sum(record => record.Payout),
+                    TotalWins = group.Count(record => record.Result == BetResult.Win),
+                    TotalLosses = group.Count(record => record.Result == BetResult.Loss),
+                    TotalDraws = group.Count(record => record.Result == BetResult.Draw)
+                }).OrderBy(statistics => statistics.GameName).ToList();
+
+            _logger.Log(LogLevel.Debug, $"Statistics retrieved for {statistics.Count} games.");
+
+            return statistics;
+        }
+
         public UserStatistics GetUserStatistics(string userId)
         {
             if (string.IsNullOrWhiteSpace(userId))

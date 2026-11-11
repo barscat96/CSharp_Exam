@@ -19,5 +19,8 @@ namespace CSharp_Exam.Casino.Stats
         public string FavouriteGame { get; set; }
         public decimal BiggestBet { get; set; }
         public decimal BiggestPayout { get; set; }
+        public decimal AverageBetAmount => TotalBets > 0 ? TotalBetsAmount / TotalBets : 0;
+        public decimal AveragePayout => TotalBets > 0 ? TotalPayouts / TotalBets : 0;
+        public decimal WinRatePercent => WinRate * 100;
     }
 }
