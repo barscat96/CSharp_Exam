@@ -1,7 +1,6 @@
 ﻿using CSharp_Exam.Casino.Finance.Configs;
 using CSharp_Exam.Casino.Models;
 using CSharp_Exam.Casino.Finance.Exceptions;
-using CSharp_Exam.Casino.Services.Logging;
 using static CSharp_Exam.Casino.Finance.Configs.ValidationRegistry;
 
 using System.Text.Json.Serialization;
@@ -15,9 +14,7 @@ partial class BankAccount(uint id, User? user_ = null)
     [JsonInclude]
     public User? user { get; private set; } = user_;
     [JsonInclude]
-    public string PasswordHash { get; private set; } = string.Empty;
-    [JsonInclude]
-    public Dictionary<DateTime, string> TransactionsHistory { get; private set; } = new();
+    public Dictionary<DateTime, string> TransactionsHistory { get; private set; } = [];
     [JsonInclude]
     public DateTime AccountCreatedAt { get; private set; } = DateTime.Now;
 

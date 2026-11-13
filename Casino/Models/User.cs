@@ -2,7 +2,7 @@ namespace CSharp_Exam.Casino.Models
 {
     public class User
     {
-        public int Id { get; set; }
+        public uint Id { get; set; }
         public string Username { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
@@ -11,6 +11,13 @@ namespace CSharp_Exam.Casino.Models
         public List<string> ActivityHistory { get; set; } = new List<string>();
 
         public User() { }
+
+        public User(uint id, string username = "")
+        {
+            Id = id;
+            if (!string.IsNullOrEmpty(username))
+                Username = username;
+        }
 
         public User(User other)
         {
