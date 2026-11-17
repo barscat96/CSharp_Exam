@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using CSharp_Exam.Casino.Stats;
 
 namespace CSharp_Exam.Casino.Games
 {
@@ -245,8 +246,9 @@ public enum UserRole { User, Admin }
 
     public class PokerGame
     {
-        public static void Main(string[] args)
+              public static void Main(string[] args, StatisticsManager? statsManager = null)
         {
+            statsManager ??= new StatisticsManager();
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             Console.Clear();
             Console.WriteLine("======================================================");
@@ -444,41 +446,80 @@ public enum UserRole { User, Admin }
                             winner = p;
                         }
                     }
-                    Console.WriteLine("\n------------------------------------------------------");
+                                       Console.WriteLine("\n------------------------------------------------------");
+                    decimal payoutForStats = 0;
+                    BetResult betResultForStats = BetResult.Loss;
+
                     if (winner == user)
                     {
                         Console.ForegroundColor = ConsoleColor.Green;
                         Console.WriteLine($"🎉 НЕЙМОВІРНО, {user.Name.ToUpper()}! Ви обіграли найкращих хайроллерів планети і забрали куш: ${pot}!");
+                        Console.ResetColor();
                         user.Balance += pot;
+                        payoutForStats = pot;
+                        betResultForStats = BetResult.Win;
                     }
                     else
                     {
-                        // Якщо ти пасанув, боти швиденько розігрують банк між собою
-                        var activeBots = players.Where(p => !p.IsFolded && p != user).ToList();
-                        if (activeBots.Count > 0)
-                        {
-                            Player botWinner = activeBots[rng.Next(activeBots.Count)];
-                            botWinner.Balance += pot;
-                            Console.WriteLine($"\n💀 Ви скинули карти. Фінальний банк у ${pot} розіграли між собою боти. Виграв {botWinner.Name}.");
-                        }
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"\n💀 На жаль, цього разу виграв {winner?.Name ?? "бот"}. Банк ${pot} дістається йому.");
+                        Console.ResetColor();
                     }
-                    Console.WriteLine("\nНатисніть Enter, щоб продовжити...");
-                    while (Console.KeyAvailable) Console.ReadKey(true);
-                    Console.ReadLine();
 
-
-                    // ВИВІД ПОТОЧНОГО БАЛАНСУ ТА ЗАПИТ НА НАСТУПНИЙ РАУНД
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"\n💰 Твій поточний баланс фішок: ${user.Balance}");
-                    Console.ResetColor();
-
-                    Console.Write("\nБажаєте зіграти наступну роздачу? (y/n): ");
-                    string answer = Console.ReadLine()?.ToLower();
-                    if (answer != "y" && answer != "н")
+                    // Передаємо ставку в StatisticsManager Данили
+                    if (user.CurrentBet > 0)
                     {
-                        Console.WriteLine("\nДякуємо за гру! Ви зняли гроші та вийшли з казино.");
-                        break;
+                        statsManager.AddBet(new BetRecord
+                        {
+                            UserId = user.Name,
+                            GameName = "Poker",
+                            BetAmount = user.CurrentBet,
+                            Payout = payoutForStats,
+                            Result = betResultForStats,
+                            Date = DateTime.Now
+                        });
                     }
+                }
+                else
+                {
+                    // Якщо гравець скинув карти — боти розігрують банк, а програш теж фіксується в статистиці
+                    var activeBots = players.Where(p => !p.IsFolded && p != user).ToList();
+                    if (activeBots.Count > 0)
+                    {
+                        Player botWinner = activeBots[rng.Next(activeBots.Count)];
+                        botWinner.Balance += pot;
+                        Console.WriteLine($"\n💀 Ви скинули карти. Фінальний банк у ${pot} розіграли між собою боти. Виграв {botWinner.Name}.");
+                    }
+
+                    if (user.CurrentBet > 0)
+                    {
+                        statsManager.AddBet(new BetRecord
+                        {
+                            UserId = user.Name,
+                            GameName = "Poker",
+                            BetAmount = user.CurrentBet,
+                            Payout = 0,
+                            Result = BetResult.Loss,
+                            Date = DateTime.Now
+                        });
+                    }
+                }
+
+                Console.WriteLine("\nНатисніть Enter, щоб продовжити...");
+                while (Console.KeyAvailable) Console.ReadKey(true);
+                Console.ReadLine();
+
+                // Вивід поточного балансу та запит на наступний раунд
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"\n💰 Твій поточний баланс фішок: ${user.Balance}");
+                Console.ResetColor();
+
+                Console.Write("\nБажаєте зіграти наступну роздачу? (y/n): ");
+                string answer = Console.ReadLine()?.ToLower();
+                if (answer != "y" && answer != "н")
+                {
+                    Console.WriteLine("\nДякуємо за гру! Ви зняли гроші та вийшли з казино.");
+                    break;
                 }
             }
         }
