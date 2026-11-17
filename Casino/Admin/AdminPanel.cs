@@ -8,7 +8,7 @@ namespace CSharp_Exam.Casino.Admin
 {
     public class AdminPanel
     {
-        // Метод для запуску адмінки (statsManager необов'язковий, щоб не ламати старі виклики)
+        // Метод для запуску адмінки
         public static void ShowPanel(Player currentUser, List<Player> allPlayers, StatisticsManager? statsManager = null)
         {
             if (currentUser.Role != UserRole.Admin)
