@@ -5,11 +5,14 @@ namespace CSharp_Exam.Casino.Finance.Classes;
 public class FixedArray<T>(uint size) : IEnumerable<T>
     where T : notnull
 {
-    public T[] array { get; } = new T[size];
+    private T[] array = new T[size];
 
     public T this[int index] => array[index];
 
     private uint index = 0;
+
+    public bool IsFull 
+        => index == array.Length;
 
     public void Add(T item)
     {

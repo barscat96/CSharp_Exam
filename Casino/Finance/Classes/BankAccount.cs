@@ -33,6 +33,14 @@ partial class BankAccount(uint id, User? user_ = null)
         => PaymentMethods.TryGetValue(payment_method, out var methods)
        && methods.Any(x => string.Equals(x.Id, payment_id, StringComparison.Ordinal));
 
+    public bool HasFullPaymentMethods(PaymentMethods method)
+    {
+        if (PaymentMethods.TryGetValue(method, out var val))
+            return val.IsFull;
+
+        return false;
+    }
+
     public bool Withdraw(
         decimal amount, 
         string payment_id, 
@@ -47,7 +55,7 @@ partial class BankAccount(uint id, User? user_ = null)
 
         payment.Balance -= amount;
 
-        TransactionsHistory[DateTime.Now] = $"Withdrawal of {amount} from {payment_id} ({payment_method})";
+        TransactionsHistory[DateTime.Now] = $"Withdrawal of {amount}$ from {payment_id} ({payment_method})";
 
         return true;
     }
@@ -66,7 +74,7 @@ partial class BankAccount(uint id, User? user_ = null)
 
         payment.Balance += amount;
 
-        TransactionsHistory[DateTime.Now] = $"Deposit of {amount} to {payment_id} ({payment_method})";
+        TransactionsHistory[DateTime.Now] = $"Deposit of {amount}$ to {payment_id} ({payment_method})";
 
         return true;
     }

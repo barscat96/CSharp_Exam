@@ -6,6 +6,5 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 Bank bank = new("Central Cat Bank");
 
-DataService.Register(bank);
-
-DataService.ExecuteAll(ActionType.Load);
+var account = bank.Menu();
+Console.WriteLine(account?.user?.Username ?? "Idk");

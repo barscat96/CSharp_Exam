@@ -23,42 +23,62 @@ static class ConsoleService
 
     public static int ChooseOption(params string[] options)
     {
+        if (options.Length == 0)
+            throw new ArgumentException("At least one option is required");
+
         int selected = 0;
+        int startLine = Console.CursorTop;
 
-        while (true)
+        // Reserve space up front so the menu can't scroll later:
+        for (int i = 0; i < options.Length; i++)
+            Console.WriteLine();
+        startLine = Console.CursorTop - options.Length;   // adjusted if the window scrolled
+        if (startLine < 0) startLine = 0;
+
+        Console.CursorVisible = false;
+        try
         {
-            Console.Clear();
-
-            for (int i = 0; i < options.Length; i++)
+            while (true)
             {
-                if (i == selected)
+                for (int i = 0; i < options.Length; i++)
                 {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.Write("-> ");
+                    Console.SetCursorPosition(0, startLine + i);
+                    Console.Write(new string(' ', Console.WindowWidth - 1));
+                    Console.SetCursorPosition(0, startLine + i);
+
+                    if (i == selected)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.Write("-> ");
+                    }
+                    else
+                        Console.Write("   ");
+
+                    Console.Write($"{i + 1}. {options[i]}");
+                    Console.ResetColor();
                 }
-                else
-                    Console.Write("   ");
 
-                Console.WriteLine($"{i+1}. {options[i]}");
-                Console.ResetColor();
-            }
+                ConsoleKey key = Console.ReadKey(true).Key;
 
-            ConsoleKey key = Console.ReadKey(true).Key;
+                switch (key)
+                {
+                    case ConsoleKey.UpArrow:
+                        selected = (selected - 1 + options.Length) % options.Length;
+                        break;
 
-            switch (key)
-            {
-                case ConsoleKey.UpArrow:
-                    selected = (selected - 1 + options.Length) % options.Length;
-                    break;
+                    case ConsoleKey.DownArrow:
+                        selected = (selected + 1) % options.Length;
+                        break;
 
-                case ConsoleKey.DownArrow:
-                    selected = (selected + 1) % options.Length;
-                    break;
-
-                case ConsoleKey.Enter:
-                    return selected;
+                    case ConsoleKey.Enter:
+                        Console.SetCursorPosition(0, startLine + options.Length);
+                        return selected;
+                }
             }
         }
+        finally
+        {
+            Console.CursorVisible = true;
+        }
     }
-
 }
