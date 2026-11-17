@@ -1,17 +1,16 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using CSharp_Exam.Casino.Games;
+using CSharp_Exam.Casino.Stats;
 
 namespace CSharp_Exam.Casino.Admin
 {
     public class AdminPanel
     {
-        // Метод для запуску адмінки
-        public static void ShowPanel(Player currentUser, List<Player> allPlayers)
+        // Метод для запуску адмінки (statsManager необов'язковий, щоб не ламати старі виклики)
+        public static void ShowPanel(Player currentUser, List<Player> allPlayers, StatisticsManager? statsManager = null)
         {
-            // Перевірка на права: якщо звичайний гравець спробує зайти - нічо не вийде
             if (currentUser.Role != UserRole.Admin)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -19,6 +18,9 @@ namespace CSharp_Exam.Casino.Admin
                 Console.ResetColor();
                 return;
             }
+
+            // Якщо менеджер статистики не передали ззовні — створюєм дефолтний
+            statsManager ??= new StatisticsManager();
 
             while (true)
             {
@@ -31,6 +33,7 @@ namespace CSharp_Exam.Casino.Admin
                 Console.WriteLine("1. Перегляд усіх користувачів казино");
                 Console.WriteLine("2. Блокування користувача");
                 Console.WriteLine("3. Розблокування користувача");
+                Console.WriteLine("4. Перегляд статистики казино");
                 Console.WriteLine("0. Вийти з адмін-панелі");
                 Console.Write("\nОберіть дію: ");
 
@@ -47,6 +50,9 @@ namespace CSharp_Exam.Casino.Admin
                     case "3":
                         SetBlockStatus(allPlayers, false);
                         break;
+                    case "4":
+                        ShowCasinoStatistics(statsManager);
+                        break;
                     case "0":
                         Console.WriteLine("\nВихід з адмін-панелі...");
                         return;
@@ -60,7 +66,7 @@ namespace CSharp_Exam.Casino.Admin
             }
         }
 
-        // 1. ПЕРЕГЛЯД КОРИСТУВАЧІВ
+        // Перегляд користувачів
         private static void ShowAllUsers(List<Player> allPlayers)
         {
             Console.Clear();
@@ -72,7 +78,6 @@ namespace CSharp_Exam.Casino.Admin
 
             foreach (var p in allPlayers.OrderBy(p => p.Id))
             {
-                // Підсвічування заблокованих гравців червоним, адмінів — золотим
                 if (p.IsBanned) Console.ForegroundColor = ConsoleColor.Red;
                 else if (p.Role == UserRole.Admin) Console.ForegroundColor = ConsoleColor.Yellow;
 
@@ -84,7 +89,7 @@ namespace CSharp_Exam.Casino.Admin
             Console.WriteLine("======================================================================");
         }
 
-        // Пункти 2 та 3: БЛОКУВАННЯ / РОЗБЛОКУВАННЯ КОРИСТУВАЧА
+        // Блокування\розблокування користувача
         private static void SetBlockStatus(List<Player> allPlayers, bool block)
         {
             ShowAllUsers(allPlayers);
@@ -93,7 +98,6 @@ namespace CSharp_Exam.Casino.Admin
 
             if (int.TryParse(Console.ReadLine(), out int targetId))
             {
-                // Пошук гравця за ID
                 var targetPlayer = allPlayers.SingleOrDefault(p => p.Id == targetId);
 
                 if (targetPlayer == null)
@@ -122,6 +126,30 @@ namespace CSharp_Exam.Casino.Admin
             {
                 Console.WriteLine("[-] Некоректний ID.");
             }
+        }
+
+        // Перегляд статистики казино
+        private static void ShowCasinoStatistics(StatisticsManager statsManager)
+        {
+            Console.Clear();
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine("==========================================================");
+            Console.WriteLine("📊              ЗАГАЛЬНА СТАТИСТИКА КАЗИНО              📊");
+            Console.WriteLine("==========================================================");
+            Console.ResetColor();
+            Console.WriteLine($"Всього зіграно ставок:      {statsManager.TotalBets}");
+            Console.WriteLine($"Загальна сума ставок:      ${statsManager.TotalBetAmount}");
+            Console.WriteLine($"Загальна сума виплат:      ${statsManager.TotalPayouts}");
+
+            Console.ForegroundColor = statsManager.NetResult >= 0 ? ConsoleColor.Green : ConsoleColor.Red;
+            Console.WriteLine($"Чистий прибуток казино:    ${statsManager.NetResult}");
+            Console.ResetColor();
+
+            var pokerStats = statsManager.GetGameStatistics("Poker");
+            Console.WriteLine("\n--- Статистика по грі: POKER ---");
+            Console.WriteLine($"Раундів: {pokerStats.TotalBets} | Ставок: ${pokerStats.TotalBetAmount} | Виплат: ${pokerStats.TotalPayouts}");
+            Console.WriteLine($"Перемог гравців: {pokerStats.TotalWins} | Поразок: {pokerStats.TotalLosses} | Нічиїх: {pokerStats.TotalDraws}");
+            Console.WriteLine("==========================================================");
         }
     }
 }
