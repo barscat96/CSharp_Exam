@@ -1,20 +1,12 @@
 ﻿using CSharp_Exam.Casino.Finance.Classes;
-using CSharp_Exam.Casino.Finance.Configs;
+using CSharp_Exam.Casino.Services;
+using CSharp_Exam.Casino.Services.Types;
 
+Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-// -- Testing
-Bank Central_Bank = new();
+Bank bank = new("Central Cat Bank");
 
-string str = "4149498274028402";
-
-try
-{ 
-    if (PaymentValidator.ValidateCardOrCrypto(str, ValidationRegistry.PaymentMethods.Card))
-        Console.WriteLine(PaymentValidator.GetCardOrCrypto(str, ValidationRegistry.PaymentMethods.Card)); 
-    else
-        Console.WriteLine("Invalid payment method!");
-}
-catch (Exception e)
-{
-    Console.WriteLine(e);
-}
+var account = bank.Menu();
+Console.WriteLine(account?.user?.Username ?? "Idk");
+account = bank.Menu(); // login
+Console.WriteLine(account?.user?.Username ?? "Idk");

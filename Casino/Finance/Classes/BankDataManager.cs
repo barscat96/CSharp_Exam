@@ -13,7 +13,8 @@ partial class BankAccount
         IncludeFields = true
     };
 
-    private string FilePath => $"BankAccount_{Id}.json";
+    private string GetFilePath(string directoryPath)
+        => Path.Combine(directoryPath, $"BankAccount_{Id}.json");
 
     public void Save(string directoryPath)
     {
@@ -21,7 +22,7 @@ partial class BankAccount
             Directory.CreateDirectory(directoryPath);
 
         string json = JsonSerializer.Serialize(this, options);
-        File.WriteAllText(FilePath, json);
+        File.WriteAllText(GetFilePath(directoryPath), json);
     }
 
     public void Load(string directoryPath)
@@ -29,12 +30,11 @@ partial class BankAccount
         if (!Directory.Exists(directoryPath))
             throw new DataOperationFailed(ActionType.Load, "Failed to load bank account data");
 
-        string savedJson = File.ReadAllText(FilePath);
+        string savedJson = File.ReadAllText(GetFilePath(directoryPath));
         BankAccount? loadedAccount = JsonSerializer.Deserialize<BankAccount>(savedJson, options)
             ?? throw new DataOperationFailed(ActionType.Load, "Failed to load bank account data");
 
         user = new(loadedAccount.user);
-        PasswordHash = loadedAccount.PasswordHash;
         TransactionsHistory = new(loadedAccount.TransactionsHistory);
         AccountCreatedAt = loadedAccount.AccountCreatedAt;
         PaymentMethods = new(loadedAccount.PaymentMethods);
@@ -58,17 +58,17 @@ partial class Bank
         if (!Directory.Exists(DirectoryPath))
             Directory.CreateDirectory(DirectoryPath);
 
-        foreach (BankAccount account in users.Values)
+        foreach (BankAccount account in Accounts.Values)
             account.Save(DirectoryPath);
 
-        string json = JsonSerializer.Serialize(users.Keys, options);
+        string json = JsonSerializer.Serialize(Accounts.Keys, options);
         File.WriteAllText(FilePath, json);
     }
 
     [Load(nameof(Bank))]
     public void Load()
     {
-        users.Clear();
+        Accounts.Clear();
 
         if (!Directory.Exists(DirectoryPath))
             throw new DataOperationFailed(ActionType.Load, "Failed to load bank data");
@@ -88,7 +88,7 @@ partial class Bank
             try
             {
                 account.Load(DirectoryPath);
-                users.Add(id, account);
+                Accounts.Add(id, account);
             }
             catch (DataOperationFailed e)
             {
@@ -96,4 +96,12 @@ partial class Bank
             }
         }
     }
+
+    public bool UsernameExists(string username)
+        => Accounts.Values.Any(x =>
+            string.Equals(
+                x.user?.Username,
+                username,
+                StringComparison.OrdinalIgnoreCase
+            ));
 }

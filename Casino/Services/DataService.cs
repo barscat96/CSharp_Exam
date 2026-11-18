@@ -17,8 +17,14 @@ public static class DataService
     private static void AddMethod(ActionType actionType, string className, Action method)
     {
         var action_methods = _DataMethods[actionType];
+
         if (action_methods.TryGetValue(className, out var methods))
+        {
+            if (method.Method.IsStatic && methods.Any(m => m.Method == method.Method))
+                return;
+
             methods.Add(method);
+        }
         else
             action_methods.Add(className, [method]);
     }
@@ -31,10 +37,11 @@ public static class DataService
         {
             Attribute? attribute = (Attribute?)method.GetCustomAttribute<SaveAttribute>()
                 ?? method.GetCustomAttribute<LoadAttribute>();
-
             if (attribute is null) continue;
 
-            var action = Delegate.CreateDelegate(typeof(Action), obj, method) as Action;
+            var action = method.IsStatic
+                ? Delegate.CreateDelegate(typeof(Action), method) as Action
+                : Delegate.CreateDelegate(typeof(Action), obj, method) as Action;
             if (action is null) continue;
 
             if (attribute is SaveAttribute saveAttribute)
@@ -54,7 +61,9 @@ public static class DataService
 
             if (attribute is null) continue;
 
-            var action = Delegate.CreateDelegate(typeof(Action), obj, method) as Action;
+            var action = method.IsStatic
+                ? Delegate.CreateDelegate(typeof(Action), method) as Action
+                : Delegate.CreateDelegate(typeof(Action), obj, method) as Action;
             if (action is null) continue;
 
             if (attribute is SaveAttribute saveAttribute)

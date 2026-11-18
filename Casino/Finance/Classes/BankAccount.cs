@@ -2,6 +2,7 @@
 using CSharp_Exam.Casino.Models;
 using CSharp_Exam.Casino.Finance.Exceptions;
 using static CSharp_Exam.Casino.Finance.Configs.ValidationRegistry;
+
 using System.Text.Json.Serialization;
 
 namespace CSharp_Exam.Casino.Finance.Classes;
@@ -13,9 +14,7 @@ partial class BankAccount(uint id, User? user_ = null)
     [JsonInclude]
     public User? user { get; private set; } = user_;
     [JsonInclude]
-    public string PasswordHash { get; private set; } = string.Empty;
-    [JsonInclude]
-    public Dictionary<DateTime, string> TransactionsHistory { get; private set; } = new();
+    public Dictionary<DateTime, string> TransactionsHistory { get; private set; } = [];
     [JsonInclude]
     public DateTime AccountCreatedAt { get; private set; } = DateTime.Now;
 
@@ -34,6 +33,14 @@ partial class BankAccount(uint id, User? user_ = null)
         => PaymentMethods.TryGetValue(payment_method, out var methods)
        && methods.Any(x => string.Equals(x.Id, payment_id, StringComparison.Ordinal));
 
+    public bool HasFullPaymentMethods(PaymentMethods method)
+    {
+        if (PaymentMethods.TryGetValue(method, out var val))
+            return val.IsFull;
+
+        return false;
+    }
+
     public bool Withdraw(
         decimal amount, 
         string payment_id, 
@@ -48,7 +55,7 @@ partial class BankAccount(uint id, User? user_ = null)
 
         payment.Balance -= amount;
 
-        TransactionsHistory[DateTime.Now] = $"Withdrawal of {amount} from {payment_id} ({payment_method})";
+        TransactionsHistory[DateTime.Now] = $"Withdrawal of {amount}$ from {payment_id} ({payment_method})";
 
         return true;
     }
@@ -67,7 +74,7 @@ partial class BankAccount(uint id, User? user_ = null)
 
         payment.Balance += amount;
 
-        TransactionsHistory[DateTime.Now] = $"Deposit of {amount} to {payment_id} ({payment_method})";
+        TransactionsHistory[DateTime.Now] = $"Deposit of {amount}$ to {payment_id} ({payment_method})";
 
         return true;
     }

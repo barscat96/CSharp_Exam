@@ -1,13 +1,12 @@
-using System.Security.Cryptography;
-using System.Text;
+using static CSharp_Exam.Casino.Services.HashingService;
 using CSharp_Exam.Casino.Models;
 
-namespace CSharp_Exam.Services
+namespace CSharp_Exam.Casino.Services
 {
     public class UserService
     {
         private List<User> _users = new List<User>();
-        private int _nextId = 1;
+        private uint _nextId = 1;
 
         public User? CurrentUser { get; private set; }
 
@@ -163,12 +162,6 @@ namespace CSharp_Exam.Services
                     return false;
             }
             return true;
-        }
-
-        private string HashPassword(string password)
-        {
-            byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
-            return Convert.ToHexString(bytes);
         }
     }
 }

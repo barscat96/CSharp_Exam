@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace CSharp_Exam.Casino.Finance.Configs;
+﻿namespace CSharp_Exam.Casino.Finance.Configs;
 
 public readonly record struct PaymentConfig(
     string Name,
