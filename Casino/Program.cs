@@ -8,3 +8,5 @@ Bank bank = new("Central Cat Bank");
 
 var account = bank.Menu();
 Console.WriteLine(account?.user?.Username ?? "Idk");
+account = bank.Menu(); // login
+Console.WriteLine(account?.user?.Username ?? "Idk");
