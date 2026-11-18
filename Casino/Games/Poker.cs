@@ -466,7 +466,7 @@ public enum UserRole { User, Admin }
                         Console.ResetColor();
                     }
 
-                    // Передаємо ставку в StatisticsManager Данили
+                    // Передаємо ставку в StatisticsManager
                     if (user.CurrentBet > 0)
                     {
                         statsManager.AddBet(new BetRecord
