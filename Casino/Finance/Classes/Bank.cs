@@ -1,17 +1,9 @@
-﻿//-- [ SYSTEM ]
 using CSharp_Exam.Casino.Finance.Configs;
-
-//-- [ EXCEPTIONS ]
 using CSharp_Exam.Casino.Finance.Exceptions;
-
-//-- [MODELS]
 using CSharp_Exam.Casino.Models;
-
-//-- [ SERVICES ]
 using CSharp_Exam.Casino.Services.Logging;
 using System.Threading;
 
-//-- [ CONFIGS ]
 using static CSharp_Exam.Casino.Finance.Configs.ValidationRegistry;
 using static CSharp_Exam.Casino.Services.ConsoleService;
 using static CSharp_Exam.Casino.Services.HashingService;
@@ -26,6 +18,7 @@ partial class Bank
     public static readonly ushort MaxCryptoWallets = 4;
 
     public readonly Dictionary<uint, BankAccount> Accounts = [];
+
     private static readonly Dictionary<PaymentMethods, HashSet<PaymentMethod>> usedPaymentMethods = new()
     {
         [PaymentMethods.Card] = [],
@@ -39,9 +32,45 @@ partial class Bank
 
     private readonly ushort WaitTime = 2500;
 
-    private readonly string[] AuthChoices = [ "Register", "LogIn", "Quit" ];
+    private enum AuthChoice { Register, LogIn, Quit }
+    private enum SelectionResult { Proceed, Restart, Exit }
+
+    private readonly string[] AuthChoices = ["Register", "LogIn", "Quit"];
     private readonly string[] CardPaymentMethods;
     private readonly string[] CryptoPaymentMethods;
+
+    public Bank(string name)
+    {
+        Name = name;
+        logger = new LoggingService(new FileLogProvider(LogFilePath));
+
+        CardPaymentMethods = [.. CardIndexes.Values.Select(v => v.Name)];
+        CryptoPaymentMethods = [.. CryptoIndexes.Values.Select(v => v.Name)];
+    }
+
+    private static string ConsoleInput(string prompt)
+    {
+        Console.Write(prompt);
+        return Console.ReadLine() ?? string.Empty;
+    }
+
+    private static void ShowHeader(string title)
+    {
+        string line = $"| {title} |";
+        string border = new('=', line.Length);
+
+        Console.Clear();
+        Console.WriteLine(border);
+        WriteColoredLine(line, ConsoleColor.Blue);
+        Console.WriteLine(border);
+    }
+
+    private uint GetNextAccountId()
+        => Accounts.Count == 0 ? 1u : Accounts.Keys.Max() + 1;
+
+    private BankAccount? FindAccountByUsername(string username)
+        => Accounts.Values.FirstOrDefault(a =>
+            string.Equals(a.user?.Username, username, StringComparison.OrdinalIgnoreCase));
 
     private static bool HandlePaymentRequest(Func<bool> action)
     {
@@ -54,11 +83,6 @@ partial class Bank
             WriteColoredLine(e.Message, ConsoleColor.DarkYellow);
             return false;
         }
-    }
-    private static string ConsoleInput(string prompt)
-    {
-        Console.Write(prompt);
-        return Console.ReadLine() ?? string.Empty;
     }
 
     private static PaymentMethod GetRandomPaymentMethod(PaymentMethods method, string prefix)
@@ -89,196 +113,190 @@ partial class Bank
         if (length < prefix.Length)
             throw new InvalidOperationException("Invalid payment configuration");
 
-        return prefix + new string([..
-            Enumerable.Range(0, length - prefix.Length)
-                .Select(_ => digits[Random.Next(digits.Length)])]
-        );
+        var randomPart = Enumerable
+            .Range(0, length - prefix.Length)
+            .Select(_ => digits[Random.Next(digits.Length)]);
+
+        return prefix + new string([.. randomPart]);
     }
 
     private static void DisplaySelected(params PaymentMethod?[] methods)
     {
-        bool every_null = true;
+        bool nothingSelected = true;
 
         foreach (PaymentMethod? method in methods)
         {
-            if (method != null)
+            if (method is null)
+                continue;
+
+            string methodName = method.Value.Method switch
             {
-                string method_name = method.Value.Method switch
-                {
-                    PaymentMethods.Card => "Card",
-                    PaymentMethods.Crypto => "Crypto",
-                    _ => "Unknown"
-                };
+                PaymentMethods.Card => "Card",
+                PaymentMethods.Crypto => "Crypto",
+                _ => "Unknown"
+            };
 
-                Console.WriteLine($"{method_name} - Name: {method.Value.Name} | Id: {method.Value.Id}");
-
-                if (every_null) every_null = false;
-            }
+            Console.WriteLine($"{methodName} - Name: {method.Value.Name} | Id: {method.Value.Id}");
+            nothingSelected = false;
         }
 
-        if (every_null)
+        if (nothingSelected)
             WriteColoredLine("No selected payment methods", ConsoleColor.Yellow);
 
         Console.WriteLine();
     }
 
+    private SelectionResult ChooseCard(bool cardRequired, out PaymentMethod? card)
+    {
+        card = null;
+
+        string[] options = cardRequired
+            ? [.. CardPaymentMethods, "Back"]
+            : [.. CardPaymentMethods, "Next", "Back"];
+
+        int choice = ChooseOption(options);
+
+        if (choice == options.Length - 1)
+            return SelectionResult.Exit;
+
+        if (choice < CardPaymentMethods.Length)
+        {
+            var key = CardIndexes.ElementAt(choice).Key;
+            card = GetRandomPaymentMethod(PaymentMethods.Card, key);
+        }
+
+        return SelectionResult.Proceed;
+    }
+
+    private SelectionResult ChooseCrypto(out PaymentMethod? crypto)
+    {
+        crypto = null;
+
+        string[] options = [.. CryptoPaymentMethods, "Skip", "Back"];
+        int choice = ChooseOption(options);
+
+        if (choice == options.Length - 1)
+            return SelectionResult.Restart;
+
+        if (choice < CryptoPaymentMethods.Length)
+        {
+            var key = CryptoIndexes.ElementAt(choice).Key;
+            crypto = GetRandomPaymentMethod(PaymentMethods.Crypto, key);
+        }
+
+        return SelectionResult.Proceed;
+    }
+
+    private bool ConfirmSelection(PaymentMethod? card, PaymentMethod? crypto)
+    {
+        const int Confirm = 0, Retry = 1;
+
+        Console.Clear();
+        Console.WriteLine("SELECTED PAYMENT METHODS:");
+        DisplaySelected([card, crypto]);
+
+        int choice = ChooseOption(["Confirm", "Retry", "Exit"]);
+
+        switch (choice)
+        {
+            case Confirm:
+                Console.Clear();
+                WriteColoredLine("✅ Confirmed!", ConsoleColor.Green);
+                Console.WriteLine("// NEW PAYMENT METHODS \\\\");
+                DisplaySelected([card, crypto]);
+                return false;
+
+            case Retry:
+                WriteColoredLine("🔄 Preparing retry...", ConsoleColor.Magenta);
+                Thread.Sleep(WaitTime / 2);
+                return true;
+
+            default:
+                WriteColored("ヾ(•ω•`) See you again!\n", ConsoleColor.Cyan);
+                return false;
+        }
+    }
+
     private void AddPaymentMethod(BankAccount account, bool cardRequired = false)
     {
+        string username = account.user?.Username ?? "unknown";
+
         if (!Accounts.ContainsValue(account))
-        { 
-            logger.Log(LogLevel.Warning, $"Failed to add payment method for {account.user?.Username} | No such account found");
-            throw new ArgumentException($"Account '{account.user?.Username}' does not exist!");
+        {
+            logger.Log(LogLevel.Warning, $"Failed to add payment method for {username} | No such account found");
+            throw new ArgumentException($"Account '{username}' does not exist!");
         }
-        else if (account.HasFullPaymentMethods(PaymentMethods.Card) 
+
+        if (account.HasFullPaymentMethods(PaymentMethods.Card)
             && account.HasFullPaymentMethods(PaymentMethods.Crypto))
         {
-            logger.Log(LogLevel.Warning, $"Failed to add payment method for {account.user?.Username} | Payment storage full");
-            throw new ArgumentException($"Account '{account.user?.Username}' already has no payment storage left!");
+            logger.Log(LogLevel.Warning, $"Failed to add payment method for {username} | Payment storage full");
+            throw new ArgumentException($"Account '{username}' already has no payment storage left!");
         }
 
-
-        bool work = true;
-        while (work)
+        bool working = true;
+        while (working)
         {
-            PaymentMethod? selectedCard = null, selectedCrypto = null;
+            PaymentMethod? selectedCard = null;
+            PaymentMethod? selectedCrypto = null;
 
             Console.Clear();
-            Console.WriteLine("SELECT YOUR PAYMENT METHOD\n");  
+            Console.WriteLine("SELECT YOUR PAYMENT METHOD\n");
 
-            int choice;
-
-            // CARD
             if (!account.HasFullPaymentMethods(PaymentMethods.Card))
             {
-                if (cardRequired)
-                {
-                    Console.WriteLine("-- Card (REQUIRED) --");
-                    choice = ChooseOption(
-                        [.. CardPaymentMethods, "Back"]
-                    );
-                }
-                else
-                {
-                    Console.WriteLine("-- Card --");
-                    choice = ChooseOption(
-                        [.. CardPaymentMethods, "Next", "Back"]
-                    );
-                }
+                Console.WriteLine(cardRequired ? "-- Card (REQUIRED) --" : "-- Card --");
 
-                if (choice == CardPaymentMethods.Length + 1) break;
-                else if (cardRequired && choice == CardPaymentMethods.Length) break;
-                else if (choice != CardPaymentMethods.Length)
-                {
-                    var key = CardIndexes.ElementAt(choice).Key;
-                    selectedCard = GetRandomPaymentMethod(PaymentMethods.Card, key);
-                }
+                if (ChooseCard(cardRequired, out selectedCard) == SelectionResult.Exit)
+                    break;
             }
 
-            // CRYPTO
             if (!account.HasFullPaymentMethods(PaymentMethods.Crypto))
             {
                 Console.WriteLine("\n-- Crypto --");
-                choice = ChooseOption(
-                    [.. CryptoPaymentMethods, "Skip", "Back"]
-                );
 
-                if (choice == CryptoPaymentMethods.Length + 1) continue;
-                else if (choice != CryptoPaymentMethods.Length)
-                {
-                    var key = CryptoIndexes.ElementAt(choice).Key;
-                    selectedCrypto = GetRandomPaymentMethod(PaymentMethods.Crypto, key);
-                }
+                if (ChooseCrypto(out selectedCrypto) == SelectionResult.Restart)
+                    continue;
             }
 
-            // CONFIRMATION
-            Console.Clear();
-
-            Console.WriteLine("SELECTED PAYMENT METHODS:");
-
-            DisplaySelected([selectedCard, selectedCrypto]);
-
-            choice = ChooseOption(["Confirm", "Retry", "Exit"]);
-
-            switch (choice)
-            {
-                case 0:
-                    {
-                        work = false;
-
-                        Console.Clear();
-                        WriteColoredLine($"✅ Confirmed!", ConsoleColor.Green);
-
-                        Console.WriteLine("// NEW PAYMENT METHODS \\\\");
-                        DisplaySelected([selectedCard, selectedCrypto]);
-
-                        break; 
-                    }
-                case 1:
-                    {
-                        WriteColoredLine("🔄 Preparing retry...", ConsoleColor.Magenta);
-                            
-                        Thread.Sleep(WaitTime / 2);
-
-                        break;
-                    }
-                case 2:
-                    {
-                        work = false;
-
-                        WriteColored("ヾ(•ω•`) See you again!\n", ConsoleColor.Cyan);
-
-                        break; 
-                    }
-            }
+            working = ConfirmSelection(selectedCard, selectedCrypto);
         }
 
         Thread.Sleep(WaitTime);
     }
 
-    public Bank(string name)
-    {
-        Name = name;
-        logger = new LoggingService(new FileLogProvider(LogFilePath));
-
-        CardPaymentMethods = [.. CardIndexes.Values.Select(v => v.Name)];
-        CryptoPaymentMethods = [.. CryptoIndexes.Values.Select(v => v.Name)];
-    }
-
     public BankAccount? Register()
     {
-        Console.Clear();
-
-        Console.WriteLine("================");
-        WriteColoredLine("| REGISTRATION |", ConsoleColor.Blue);
-        Console.WriteLine("================");
+        ShowHeader("REGISTRATION");
 
         string username = ConsoleInput("Enter your username: ");
-        string password = ConsoleInput("Enter your password\n" +
-            "(Hint: At least 1 letter, 1 number, 1 special character and 8 min length)" +
-            "\n> ");
+        string password = ConsoleInput(
+            "Enter your password\n" +
+            "(Hint: at least 1 letter, 1 number, 1 special character and 8 min length)\n" +
+            "> ");
 
         try
         {
             AuthenticationValidator.ValidateCredentials(username, password);
+
             if (UsernameExists(username))
                 throw new InvalidCredentialsException(CredentialsType.Username, username, true);
 
-            uint id = Accounts.Count == 0 ? 1u : Accounts.Keys.Max() + 1;
+            uint id = GetNextAccountId();
 
-            User user = new(id, username)
+            var user = new User(id, username)
             {
                 PasswordHash = HashPassword(password),
                 RegisteredAt = DateTime.Now
             };
 
-            BankAccount account = new(id, user);
-
+            var account = new BankAccount(id, user);
             Accounts.Add(account.Id, account);
 
             AddPaymentMethod(account, cardRequired: true);
 
-            WriteColoredLine("✅ Registration succesfully completed!", ConsoleColor.Green);
-            logger.Log(LogLevel.Info, $"Registered New Account | Id: {id} / Username: {username}");
+            WriteColoredLine("✅ Registration successfully completed!", ConsoleColor.Green);
+            logger.Log(LogLevel.Info, $"Registered new account | Id: {id} / Username: {username}");
 
             Thread.Sleep(WaitTime);
             return account;
@@ -286,27 +304,23 @@ partial class Bank
         catch (Exception e)
         {
             WriteColoredLine(e.Message, ConsoleColor.DarkYellow);
+            logger.Log(LogLevel.Warning, "Registration failed", e);
 
-            logger.Log(LogLevel.Warning, "Registration Failed", e);
+            Thread.Sleep(WaitTime);
+            return null;
         }
-
-        Thread.Sleep(WaitTime);
-        return null;
     }
 
     public BankAccount? Login()
     {
         if (Accounts.Count == 0)
         {
-            WriteColoredLine("\nCannot Login, the accounts list is empty", ConsoleColor.DarkYellow);
+            WriteColoredLine("\nCannot log in: there are no registered accounts yet", ConsoleColor.DarkYellow);
+            Thread.Sleep(WaitTime);
             return null;
-        }    
+        }
 
-        Console.Clear();
-
-        Console.WriteLine("===============");
-        WriteColoredLine("|    LOGIN    |", ConsoleColor.Blue);
-        Console.WriteLine("===============");
+        ShowHeader("LOGIN");
 
         string username = ConsoleInput("Enter your username: ");
         string password = ConsoleInput("Enter your password: ");
@@ -315,29 +329,21 @@ partial class Bank
         {
             AuthenticationValidator.ValidateCredentials(username, password);
 
-            BankAccount? account = Accounts.Values.FirstOrDefault(a =>
-                string.Equals(
-                    a.user?.Username,
-                    username,
-                    StringComparison.OrdinalIgnoreCase
-                ))
-            ?? throw new InvalidCredentialsException(CredentialsType.Username, username);
+            var account = FindAccountByUsername(username)
+                ?? throw new InvalidCredentialsException(CredentialsType.Username, username);
 
             if (!VerifyPassword(password, account.user!.PasswordHash))
                 throw new InvalidCredentialsException(CredentialsType.Password, password);
 
-            WriteColoredLine("✅ Login succesfully completed!", ConsoleColor.Green);
-
-            logger.Log(LogLevel.Info,
-                $"Logged Into An Account | Id: {account.Id} / Username: {username}");
+            WriteColoredLine("✅ Login successfully completed!", ConsoleColor.Green);
+            logger.Log(LogLevel.Info, $"Logged in | Id: {account.Id} / Username: {username}");
 
             return account;
         }
         catch (Exception e)
         {
             WriteColoredLine(e.Message, ConsoleColor.DarkYellow);
-
-            logger.Log(LogLevel.Warning, "Login Failed", e);
+            logger.Log(LogLevel.Warning, "Login failed", e);
 
             Thread.Sleep(WaitTime);
             return null;
@@ -357,128 +363,84 @@ partial class Bank
             Console.WriteLine(new string('-', title.Length));
             Console.WriteLine();
 
-            int choice = ChooseOption(AuthChoices);
+            BankAccount? account = null;
 
-            switch (choice)
+            switch ((AuthChoice)ChooseOption(AuthChoices))
             {
-                case 0:
-                    {
-                        BankAccount? account = Register();
-
-                        if (account is not null)
-                            return account;
-
-                        break;
-                    }
-
-                case 1:
-                    {
-                        BankAccount? account = Login();
-
-                        if (account is not null)
-                            return account;
-
-                        break;
-                    }
-
-                case 2:
-                    return null;
+                case AuthChoice.Register: account = Register(); break;
+                case AuthChoice.LogIn: account = Login(); break;
+                case AuthChoice.Quit: return null;
             }
+
+            if (account is not null)
+                return account;
 
             Thread.Sleep(WaitTime);
         }
     }
 
     public BankAccount? GetAccountFromUser(User user)
-    {
-        foreach (BankAccount account in Accounts.Values)
-            if (account?.user == user) return account;
+        => Accounts.Values.FirstOrDefault(a => a?.user == user);
 
-        return null;
-    }
-    
     public BankAccount? GetAccountByUsername(string username)
     {
         if (!AuthenticationValidator.ValidateUsername(username))
             return null;
 
-        foreach (BankAccount account in Accounts.Values)
-        {
-            if (string.Compare(account.user?.Username, username, StringComparison.Ordinal) == 0)
-                return account;
-        }
-
-        return null;
+        return FindAccountByUsername(username);
     }
 
     public bool TryGetAccount(uint id, out BankAccount? account)
         => Accounts.TryGetValue(id, out account);
 
     public bool AccountExists(BankAccount account)
-    {
-        if (account is null) return false;
-        return Accounts.ContainsValue(account);
-    }
+        => account is not null && Accounts.ContainsValue(account);
 
     public bool RequestFundsWithdrawal(
-    BankAccount account,
-    decimal amount,
-    string payment_id,
-    PaymentMethods payment_method)
-    {
-        if (!AccountExists(account))
-        {
-            logger.Log(LogLevel.Warning, $"Failed to withdraw funds | Account {account.user?.Username} not found");
-            throw new ArgumentException($"Account {account.user?.Username} does not exist!");
-        }
-
-        bool success = HandlePaymentRequest(() => account.Withdraw(amount, payment_id, payment_method));
-
-        if (success) 
-        {
-            WriteColoredLine("✅ Withdrawal succesfully completed!", ConsoleColor.Green);
-
-            logger.Log(LogLevel.Info,
-                $"Successfull withdrawal of {amount}$ | Id: {account.Id} Username: {account.user!.Username}");
-        }
-        else
-        {
-            WriteColoredLine("❌ Withdrawal failed!", ConsoleColor.Red);
-
-            logger.Log(LogLevel.Warning,
-                $"Failed withdrawal of {amount}$ | Id: {account.Id} Username: {account.user!.Username}");
-        }
-
-        return success;
-    }
+        BankAccount account,
+        decimal amount,
+        string paymentId,
+        PaymentMethods paymentMethod)
+        => ProcessFundsRequest(
+            "Withdrawal", "withdraw", account, amount,
+            () => account.Withdraw(amount, paymentId, paymentMethod));
 
     public bool RequestFundsDeposit(
         BankAccount account,
         decimal amount,
-        string payment_id,
-        PaymentMethods payment_method)
+        string paymentId,
+        PaymentMethods paymentMethod)
+        => ProcessFundsRequest(
+            "Deposit", "deposit", account, amount,
+            () => account.Deposit(amount, paymentId, paymentMethod));
+
+    private bool ProcessFundsRequest(
+        string noun,
+        string verb,
+        BankAccount account,
+        decimal amount,
+        Func<bool> operation)
     {
-        if (!AccountExists(account))
+        string username = account?.user?.Username ?? "unknown";
+
+        if (!AccountExists(account!))
         {
-            logger.Log(LogLevel.Warning, $"Failed to withdraw funds | Account {account.user?.Username} not found");
-            throw new ArgumentException($"Account {account.user?.Username} does not exist!");
+            logger.Log(LogLevel.Warning, $"Failed to {verb} funds | Account {username} not found");
+            throw new ArgumentException($"Account {username} does not exist!");
         }
 
-        bool success = HandlePaymentRequest(() => account.Deposit(amount, payment_id, payment_method));
+        bool success = HandlePaymentRequest(operation);
+        string details = $"{amount}$ | Id: {account!.Id} Username: {account.user!.Username}";
 
         if (success)
         {
-            WriteColoredLine("✅ Deposit succesfully completed!", ConsoleColor.Green);
-
-            logger.Log(LogLevel.Info,
-                $"Successfull deposit of {amount}$ | Id: {account.Id} Username: {account.user!.Username}");
+            WriteColoredLine($"✅ {noun} successfully completed!", ConsoleColor.Green);
+            logger.Log(LogLevel.Info, $"Successful {noun.ToLower()} of {details}");
         }
         else
         {
-            WriteColoredLine("❌ Deposit failed!", ConsoleColor.Red);
-
-            logger.Log(LogLevel.Warning,
-                $"Failed deposit of {amount}$ | Id: {account.Id} Username: {account.user!.Username}");
+            WriteColoredLine($"❌ {noun} failed!", ConsoleColor.Red);
+            logger.Log(LogLevel.Warning, $"Failed {noun.ToLower()} of {details}");
         }
 
         return success;
