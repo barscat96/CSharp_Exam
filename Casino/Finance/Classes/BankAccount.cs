@@ -1,4 +1,4 @@
-﻿using CSharp_Exam.Casino.Finance.Configs;
+using CSharp_Exam.Casino.Finance.Configs;
 using CSharp_Exam.Casino.Models;
 using CSharp_Exam.Casino.Finance.Exceptions;
 using static CSharp_Exam.Casino.Finance.Configs.ValidationRegistry;
@@ -29,6 +29,11 @@ partial class BankAccount(uint id, User? user_ = null)
                 new FixedArray<PaymentMethod>(Bank.MaxCryptoWallets)
     };
 
+    [JsonIgnore]
+    public decimal TotalBalance => PaymentMethods.Values
+        .SelectMany(methods => methods)
+        .Sum(method => method.Balance);
+
     public bool HasPaymentMethod(string payment_id, PaymentMethods payment_method)
         => PaymentMethods.TryGetValue(payment_method, out var methods)
        && methods.Any(x => string.Equals(x.Id, payment_id, StringComparison.Ordinal));
@@ -39,6 +44,33 @@ partial class BankAccount(uint id, User? user_ = null)
             return val.IsFull;
 
         return false;
+    }
+
+    public void ShowBalance()
+    {
+        Console.WriteLine($"Total balance: {TotalBalance}$\n");
+
+        foreach (var (type, methods) in PaymentMethods)
+        {
+            foreach (var method in methods)
+            {
+                if (method == default) continue;
+
+                Console.WriteLine($"{type} {method.Name} | {method.Id}: {method.Balance}$");
+            }
+        }
+    }
+
+    public void ShowTransactions()
+    {
+        if (TransactionsHistory.Count == 0)
+        {
+            Console.WriteLine("No transactions yet");
+            return;
+        }
+
+        foreach (var (time, description) in TransactionsHistory.OrderByDescending(t => t.Key))
+            Console.WriteLine($"{time:dd.MM.yyyy HH:mm:ss} - {description}");
     }
 
     public bool Withdraw(
