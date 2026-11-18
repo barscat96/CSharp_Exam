@@ -1,11 +1,12 @@
 ﻿using CSharp_Exam.Casino.Attributes;
+using CSharp_Exam.Casino.Finance.Configs;
 using CSharp_Exam.Casino.Services.Exceptions;
 using CSharp_Exam.Casino.Services.Types;
 using System.Text.Json;
 
 namespace CSharp_Exam.Casino.Finance.Classes;
 
-partial class BankAccount
+public partial class BankAccount
 {
     private readonly JsonSerializerOptions options = new()
     {
@@ -34,14 +35,24 @@ partial class BankAccount
         BankAccount? loadedAccount = JsonSerializer.Deserialize<BankAccount>(savedJson, options)
             ?? throw new DataOperationFailed(ActionType.Load, "Failed to load bank account data");
 
-        user = new(loadedAccount.user);
+        user = loadedAccount.user is null ? null : new(loadedAccount.user);
         TransactionsHistory = new(loadedAccount.TransactionsHistory);
         AccountCreatedAt = loadedAccount.AccountCreatedAt;
-        PaymentMethods = new(loadedAccount.PaymentMethods);
+
+        PaymentMethods = new()
+        {
+            [ValidationRegistry.PaymentMethods.Card] = new(Bank.MaxCards),
+            [ValidationRegistry.PaymentMethods.Crypto] = new(Bank.MaxCryptoWallets)
+        };
+
+        if (loadedAccount._loaded is { } data)
+            foreach (var (type, list) in data)
+                foreach (var method in list)
+                    PaymentMethods[type].Add(method);
     }
 }
 
-partial class Bank
+public partial class Bank
 {
     private string DirectoryPath => Path.Combine("SaveData", Name);
     private string FilePath => Path.Combine(DirectoryPath, "Bank.json");
@@ -71,7 +82,7 @@ partial class Bank
         Accounts.Clear();
 
         if (!Directory.Exists(DirectoryPath))
-            throw new DataOperationFailed(ActionType.Load, "Failed to load bank data");
+            return;
 
         if (!File.Exists(FilePath)) 
             throw new DataOperationFailed(ActionType.Load, "Failed to load bank data");

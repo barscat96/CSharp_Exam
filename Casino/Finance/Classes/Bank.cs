@@ -9,6 +9,7 @@ using CSharp_Exam.Casino.Models;
 
 //-- [ SERVICES ]
 using CSharp_Exam.Casino.Services.Logging;
+using System.Text;
 using System.Threading;
 
 //-- [ CONFIGS ]
@@ -18,7 +19,7 @@ using static CSharp_Exam.Casino.Services.HashingService;
 
 namespace CSharp_Exam.Casino.Finance.Classes;
 
-partial class Bank
+public partial class Bank
 {
     public string Name { get; private set; }
 
@@ -154,7 +155,7 @@ partial class Bank
                 {
                     Console.WriteLine("-- Card (REQUIRED) --");
                     choice = ChooseOption(
-                        [.. CardPaymentMethods, "Back"]
+                        [.. CardPaymentMethods ]
                     );
                 }
                 else
@@ -211,6 +212,25 @@ partial class Bank
                         Console.WriteLine("// NEW PAYMENT METHODS \\\\");
                         DisplaySelected([selectedCard, selectedCrypto]);
 
+                        StringBuilder msg = new($"Added new payment methods for {account.user!.Username} (Id: {account.Id})");
+
+                        if (selectedCard != null)
+                        {
+                            msg.Append($"\nCard - Name: {selectedCard.Value.Name} | Id: {selectedCard.Value.Id}");
+                            PaymentMethod card = selectedCard.Value;
+                            card.Balance += 100_000.00m;
+                            account.PaymentMethods[PaymentMethods.Card].Add(card);
+                        }
+                        if (selectedCrypto != null)
+                        {
+                            msg.Append($"\nCrypto - Name: {selectedCrypto.Value.Name} | Id: {selectedCrypto.Value.Id}");
+                            PaymentMethod crypto = selectedCrypto.Value;
+                            crypto.Balance += 100_000.00m;
+                            account.PaymentMethods[PaymentMethods.Crypto].Add(crypto);
+                        }
+
+                        logger.Log(LogLevel.Info, msg.ToString());
+
                         break; 
                     }
                 case 1:
@@ -225,7 +245,7 @@ partial class Bank
                     {
                         work = false;
 
-                        WriteColored("ヾ(•ω•`) See you again!\n", ConsoleColor.Cyan);
+                        WriteColoredLine("ヾ(•ω•`) See you again!", ConsoleColor.Cyan);
 
                         break; 
                     }
@@ -233,6 +253,27 @@ partial class Bank
         }
 
         Thread.Sleep(WaitTime);
+    }
+
+    private void SelectPaymentMethod(BankAccount account)
+    {
+        PaymentMethod[] methods = [.. account.PaymentMethods.Values.SelectMany(x => x) ];
+        string[] options = [
+            .. methods
+                .Where(x => !string.IsNullOrEmpty(x.Name))
+                .Select(x => x.Name),
+            "Exit"
+        ];
+
+        Console.WriteLine();
+        int choice = ChooseOption(options);
+        if (choice == methods.Length) return;
+
+        PaymentMethod method = methods[choice];
+        account.user!.SelectedMethod = method;
+
+        WriteColored("➕ New Selected Method: ", ConsoleColor.Green);
+        Console.Write($"Name {method.Name} | Id: {method.Id}\n");
     }
 
     public Bank(string name)
@@ -331,6 +372,7 @@ partial class Bank
             logger.Log(LogLevel.Info,
                 $"Logged Into An Account | Id: {account.Id} / Username: {username}");
 
+            Thread.Sleep(WaitTime);
             return account;
         }
         catch (Exception e)
@@ -344,48 +386,81 @@ partial class Bank
         }
     }
 
-    public BankAccount? Menu()
+    public BankAccount? Menu(BankAccount? existing_account = null)
     {
-        while (true)
+        if (existing_account != null)
         {
-            Console.Clear();
-
-            string title = $"/|| -- [ {Name} Bank ] -- ||\\";
-
-            Console.WriteLine(new string('=', title.Length));
-            WriteColoredLine(title, ConsoleColor.Blue);
-            Console.WriteLine(new string('-', title.Length));
-            Console.WriteLine();
-
-            int choice = ChooseOption(AuthChoices);
-
-            switch (choice)
-            {
-                case 0:
-                    {
-                        BankAccount? account = Register();
-
-                        if (account is not null)
-                            return account;
-
-                        break;
-                    }
-
-                case 1:
-                    {
-                        BankAccount? account = Login();
-
-                        if (account is not null)
-                            return account;
-
-                        break;
-                    }
-
-                case 2:
-                    return null;
+            if (!AccountExists(existing_account))
+            { 
+                WriteColoredLine($"Аккаут {existing_account.user?.Username} не iснує!", ConsoleColor.Red);
+                return null;
             }
 
-            Thread.Sleep(WaitTime);
+            while (true)
+            {
+                Console.Clear();
+                WriteColoredLine($"-- Банкiвський аккаунт {existing_account.user!.Username} --");
+
+                int choice = ChooseOption(["Перегляну методи оплати", "Вибрати метод оплати", "Вихiд"]);
+
+                switch (choice)
+                {
+                    case 0:
+                        existing_account.ShowBalance();
+                        break;
+                    case 1:
+                        SelectPaymentMethod(existing_account);
+                        break;
+                    default:
+                        return null;
+                }
+
+                Thread.Sleep(WaitTime);
+            }
+        }
+        else
+        {
+            while (true)
+            {
+                Console.Clear();
+
+                string title = $"/|| -- [ {Name} Bank ] -- ||\\";
+
+                Console.WriteLine(new string('=', title.Length));
+                WriteColoredLine(title, ConsoleColor.Blue);
+                Console.WriteLine(new string('-', title.Length));
+                Console.WriteLine();
+
+                int choice = ChooseOption(AuthChoices);
+
+                switch (choice)
+                {
+                    case 0:
+                        {
+                            BankAccount? account = Register();
+
+                            if (account is not null)
+                                return account;
+
+                            break;
+                        }
+
+                    case 1:
+                        {
+                            BankAccount? account = Login();
+
+                            if (account is not null)
+                                return account;
+
+                            break;
+                        }
+
+                    case 2:
+                        return null;
+                }
+
+                Thread.Sleep(WaitTime);
+            }
         }
     }
 
@@ -428,25 +503,25 @@ partial class Bank
     {
         if (!AccountExists(account))
         {
-            logger.Log(LogLevel.Warning, $"Failed to withdraw funds | Account {account.user?.Username} not found");
-            throw new ArgumentException($"Account {account.user?.Username} does not exist!");
+            logger.Log(LogLevel.Warning, $"Вивiд коштiв невдався | Аккаунт {account.user?.Username} не знайдено");
+            throw new ArgumentException($"Аккаунт {account.user?.Username} не iснує!");
         }
 
         bool success = HandlePaymentRequest(() => account.Withdraw(amount, payment_id, payment_method));
 
         if (success) 
         {
-            WriteColoredLine("✅ Withdrawal succesfully completed!", ConsoleColor.Green);
+            WriteColoredLine("✅ Вивiд вдало завершено!", ConsoleColor.Green);
 
             logger.Log(LogLevel.Info,
-                $"Successfull withdrawal of {amount}$ | Id: {account.Id} Username: {account.user!.Username}");
+                $"Вдалий вивiд {amount}$ | Id: {account.Id} Username: {account.user!.Username}");
         }
         else
         {
-            WriteColoredLine("❌ Withdrawal failed!", ConsoleColor.Red);
+            WriteColoredLine("❌ Вивiд коштiв скасовано!", ConsoleColor.Red);
 
             logger.Log(LogLevel.Warning,
-                $"Failed withdrawal of {amount}$ | Id: {account.Id} Username: {account.user!.Username}");
+                $"Вивiд коштiв невдався {amount}$ | Id: {account.Id} Username: {account.user!.Username}");
         }
 
         return success;
@@ -460,25 +535,25 @@ partial class Bank
     {
         if (!AccountExists(account))
         {
-            logger.Log(LogLevel.Warning, $"Failed to withdraw funds | Account {account.user?.Username} not found");
-            throw new ArgumentException($"Account {account.user?.Username} does not exist!");
+            logger.Log(LogLevel.Warning, $"Депозит коштiв невдався | Аккаунт {account.user?.Username} не знайдено");
+            throw new ArgumentException($"Аккаунт {account.user?.Username} не iснує!");
         }
 
         bool success = HandlePaymentRequest(() => account.Deposit(amount, payment_id, payment_method));
 
         if (success)
         {
-            WriteColoredLine("✅ Deposit succesfully completed!", ConsoleColor.Green);
+            WriteColoredLine("✅ Депозит вдало завершено!", ConsoleColor.Green);
 
             logger.Log(LogLevel.Info,
-                $"Successfull deposit of {amount}$ | Id: {account.Id} Username: {account.user!.Username}");
+                $"Вдалий депозит {amount}$ | Id: {account.Id} Username: {account.user!.Username}");
         }
         else
         {
-            WriteColoredLine("❌ Deposit failed!", ConsoleColor.Red);
+            WriteColoredLine("❌ Депозит коштiв скасовано!", ConsoleColor.Red);
 
             logger.Log(LogLevel.Warning,
-                $"Failed deposit of {amount}$ | Id: {account.Id} Username: {account.user!.Username}");
+                $"Депозит коштiв невдався {amount}$ | Id: {account.Id} Username: {account.user!.Username}");
         }
 
         return success;

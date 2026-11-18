@@ -5,7 +5,7 @@ namespace CSharp_Exam.Casino.Finance.Classes;
 
 public static class PaymentValidator
 {
-    public static string GetCardOrCrypto(string input, ValidationRegistry.PaymentMethods payment_method)
+    public static PaymentConfig GetConfig(string input, ValidationRegistry.PaymentMethods payment_method)
     {
         if (string.IsNullOrWhiteSpace(input))
             throw new ArgumentNullException(nameof(input));
@@ -32,8 +32,11 @@ public static class PaymentValidator
             .OrderByDescending(x => x.Key.Length)
             .FirstOrDefault();
 
-        return match.Value.Name ?? throw new PaymentMethodNotFound(input);
+        return match.Value;
     }
+
+    public static string GetCardOrCrypto(string input, ValidationRegistry.PaymentMethods payment_method)
+        => GetConfig(input, payment_method).Name ?? throw new PaymentMethodNotFound(input);
 
     public static bool ValidateCardOrCrypto(string input, ValidationRegistry.PaymentMethods payment_method)
     {

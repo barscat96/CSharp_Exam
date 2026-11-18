@@ -3,29 +3,37 @@ using CSharp_Exam.Casino.Models;
 
 namespace CSharp_Exam.Casino.Services
 {
-    public class UserService
+    public static class UserService
     {
-        private List<User> _users = new List<User>();
-        private uint _nextId = 1;
+        private static List<User> _users = new List<User>();
+        private static uint _nextId = 1;
 
-        public User? CurrentUser { get; private set; }
+        public static User? CurrentUser { get; private set; }
 
-        private User? _pendingUser;
-        private string _code = "";
-        private DateTime _codeExpires;
-        private int _attempts;
+        private static User? _pendingUser;
+        private static string _code = "";
+        private static DateTime _codeExpires;
+        private static int _attempts;
 
-        public bool IsLoggedIn
+        public static bool IsLoggedIn
         {
             get { return CurrentUser != null; }
         }
 
-        public List<User> GetAllUsers()
+        public static void AddUser(User? user)
+        {
+            if (user is null)
+                return;
+
+            user.Id = _nextId++;
+        }
+
+        public static List<User> GetAllUsers()
         {
             return _users;
         }
 
-        public User? FindByUsername(string username)
+        public static User? FindByUsername(string username)
         {
             foreach (var user in _users)
             {
@@ -35,7 +43,7 @@ namespace CSharp_Exam.Casino.Services
             return null;
         }
 
-        public User? FindByPhone(string phone)
+        public static User? FindByPhone(string phone)
         {
             foreach (var user in _users)
             {
@@ -45,7 +53,7 @@ namespace CSharp_Exam.Casino.Services
             return null;
         }
 
-        public (bool Success, string Message) Register(string username, string password, string phone)
+        public static (bool Success, string Message) Register(string username, string password, string phone)
         {
             if (string.IsNullOrWhiteSpace(username) || username.Length < 3)
                 return (false, "Логін має бути не коротшим за 3 символи.");
@@ -77,7 +85,7 @@ namespace CSharp_Exam.Casino.Services
             return (true, "Реєстрація пройшла успішно.");
         }
 
-        public (bool Success, string Message) Login(string username, string password)
+        public static (bool Success, string Message) Login(string username, string password)
         {
             if (IsLoggedIn)
                 return (false, "Ви вже увійшли. Спочатку вийдіть з акаунта.");
@@ -99,7 +107,7 @@ namespace CSharp_Exam.Casino.Services
             return (true, "Код надіслано на номер " + hidden);
         }
 
-        public (bool Success, string Message) VerifyCode(string code)
+        public static  (bool Success, string Message) VerifyCode(string code)
         {
             if (_pendingUser == null)
                 return (false, "Спочатку введіть логін і пароль.");
@@ -130,7 +138,7 @@ namespace CSharp_Exam.Casino.Services
             return (true, "Ласкаво просимо, " + CurrentUser.Username + "!");
         }
 
-        public (bool Success, string Message) Logout()
+        public static (bool Success, string Message) Logout()
         {
             if (CurrentUser == null)
                 return (false, "Ви не увійшли в акаунт.");

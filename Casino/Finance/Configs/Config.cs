@@ -3,7 +3,8 @@
 public readonly record struct PaymentConfig(
     string Name,
     ushort MinLength = 16,
-    ushort MaxLength = 16
+    ushort MaxLength = 16,
+    string? Symbol = null
 );
 
 public record struct PaymentMethod(
@@ -41,32 +42,40 @@ public static class ValidationRegistry
         // ==========================================
         // 2. GENERIC FALLBACKS (Short Matches)
         // ==========================================
-        ["34"] = new PaymentConfig("Amex", MinLength: 15, MaxLength: 15),
-        ["37"] = new PaymentConfig("Amex", MinLength: 15, MaxLength: 15),
-        ["51"] = new PaymentConfig("MasterCard"),
-        ["52"] = new PaymentConfig("MasterCard"),
-        ["53"] = new PaymentConfig("MasterCard"),
-        ["54"] = new PaymentConfig("MasterCard"),
-        ["55"] = new PaymentConfig("MasterCard"),
-        ["4"] = new PaymentConfig("Visa"),
-        ["6"] = new PaymentConfig("Discover"),
-        ["2"] = new PaymentConfig("MIR")
+        ["34"] =     new PaymentConfig("Amex", MinLength: 15, MaxLength: 15),
+        ["37"] =     new PaymentConfig("Amex", MinLength: 15, MaxLength: 15),
+        ["51"] =     new PaymentConfig("MasterCard"),
+        ["52"] =     new PaymentConfig("MasterCard"),
+        ["53"] =     new PaymentConfig("MasterCard"),
+        ["54"] =     new PaymentConfig("MasterCard"),
+        ["55"] =     new PaymentConfig("MasterCard"),
+        ["4"] =      new PaymentConfig("Visa"),
+        ["6"] =      new PaymentConfig("Discover"),
+        ["2"] =      new PaymentConfig("MIR")
     };
 
     public static readonly Dictionary<string, PaymentConfig> CryptoIndexes = new()
     {
         // Bitcoin (BTC)
-        ["1"] = new PaymentConfig("Bitcoin (Legacy)", MinLength: 26, MaxLength: 35),
-        ["3"] = new PaymentConfig("Bitcoin (Nested SegWit)", MinLength: 26, MaxLength: 35),
-        ["bc1"] = new PaymentConfig("Bitcoin (Native SegWit/Taproot)", MinLength: 42, MaxLength: 62),
+        ["1"] =          new PaymentConfig("Bitcoin (Legacy)", MinLength: 26, MaxLength: 35, "BTC"),
+        ["3"] =          new PaymentConfig("Bitcoin (Nested SegWit)", MinLength: 26, MaxLength: 35, "BTC"),
+        ["bc1"] =        new PaymentConfig("Bitcoin (Native SegWit/Taproot)", MinLength: 42, MaxLength: 62, "BTC"),
 
         // Ethereum (ETH)
-        ["0x"] = new PaymentConfig("Ethereum", MinLength: 42, MaxLength: 42),
+        ["0x"] =         new PaymentConfig("Ethereum", MinLength: 42, MaxLength: 42, "ETH"),
 
         // BNB Beacon Chain
-        ["bnb"] = new PaymentConfig("Binance Chain (Legacy)", MinLength: 42, MaxLength: 42),
+        ["bnb"] =        new PaymentConfig("Binance Chain (Legacy)", MinLength: 42, MaxLength: 42, "BNB"),
 
         // Solana (SOL)
-        ["SOL_BASE58"] = new PaymentConfig("Solana", MinLength: 32, MaxLength: 44)
+        ["SOL_BASE58"] = new PaymentConfig("Solana", MinLength: 32, MaxLength: 44, "SOL")
+    };
+
+    public static readonly Dictionary<string, decimal> CryptoPrices = new()
+    {
+        ["BTC"] = 64690.15m,
+        ["ETH"] = 1813.92m,
+        ["BNB"] = 592.42m,
+        ["SOL"] = 74.95m
     };
 }
