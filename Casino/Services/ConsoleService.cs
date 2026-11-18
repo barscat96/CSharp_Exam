@@ -29,10 +29,10 @@ static class ConsoleService
         int selected = 0;
         int startLine = Console.CursorTop;
 
-        // Reserve space up front so the menu can't scroll later:
+
         for (int i = 0; i < options.Length; i++)
             Console.WriteLine();
-        startLine = Console.CursorTop - options.Length;   // adjusted if the window scrolled
+        startLine = Console.CursorTop - options.Length;  
         if (startLine < 0) startLine = 0;
 
         Console.CursorVisible = false;
